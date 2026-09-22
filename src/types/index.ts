@@ -4,6 +4,12 @@ export type ShadeLevelType = 'none' | 'partial' | 'full';
 export type NoiseLevelType = 'quiet' | 'moderate' | 'noisy';
 export type StayDurationType = 'short' | 'medium' | 'long' | 'verylong';
 export type TimePeriodType = 'morning' | 'noon' | 'afternoon' | 'evening' | 'night';
+export type SeatConditionType = 'dry' | 'wet' | 'puddled';
+
+export interface SeatReview {
+  seatCondition: SeatConditionType;
+  confirmedAt: string;
+}
 
 export interface BenchExperience {
   id: string;
@@ -28,6 +34,10 @@ export interface Bench {
   rating: number;
   review: string;
   experiences: BenchExperience[];
+  /** 最近一次材质、遮阴调整时间（用于判定雨后复核是否失效） */
+  materialShadeAdjustedAt?: string;
+  /** 雨后适坐复核记录，存储层从独立存储合并 */
+  seatReview?: SeatReview;
   createdAt: string;
   updatedAt: string;
 }
@@ -76,6 +86,12 @@ export const TIME_PERIOD_LABELS: Record<TimePeriodType, string> = {
   afternoon: '下午',
   evening: '傍晚',
   night: '夜晚',
+};
+
+export const SEAT_CONDITION_LABELS: Record<SeatConditionType, string> = {
+  dry: '干燥',
+  wet: '潮湿',
+  puddled: '积水',
 };
 
 export const TIME_PERIOD_ICONS: Record<TimePeriodType, string> = {

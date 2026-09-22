@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Trophy, MapPin, Star, Crown, Medal, Award } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import { needsSeatReview } from '@/utils/seatReview';
 import { MATERIAL_LABELS, SHADE_LABELS } from '@/types';
-import type { Bench } from '@/types';
 
 export default function RankingPage() {
   const { benches, initialize, initialized } = useBenchStore();
@@ -16,7 +16,9 @@ export default function RankingPage() {
     }
   }, [initialized, initialize]);
 
-  const rankedBenches = [...benches]
+  // 雨后待复核的长椅从排行移除，其余按舒适度保持原排序
+  const rankedBenches = benches
+    .filter((bench) => !needsSeatReview(bench))
     .sort((a, b) => calculateComfortScore(b) - calculateComfortScore(a))
     .map((bench, index) => ({ bench, rank: index + 1 }));
 
@@ -126,10 +128,10 @@ export default function RankingPage() {
             <Trophy className="w-8 h-8 text-moss-green/50" />
           </div>
           <h3 className="font-serif text-lg font-medium text-deep-brown mb-2">
-            还没有排行数据
+            还没有可排行的长椅
           </h3>
           <p className="text-ink-light text-sm">
-            添加一些长椅档案后，这里会显示舒适度排行榜
+            添加长椅档案，或在详情页完成雨后坐面复核后查看排行
           </p>
         </div>
       )}

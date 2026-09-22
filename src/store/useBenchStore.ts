@@ -1,11 +1,15 @@
 import { create } from 'zustand';
-import type { Bench, BenchExperience, MaterialType, OrientationType, ShadeLevelType, NoiseLevelType, StayDurationType } from '@/types';
+import type { Bench, BenchExperience, MaterialType, OrientationType, ShadeLevelType, NoiseLevelType, SeatConditionType } from '@/types';
 import { loadBenches, saveBenches } from '@/utils/storage';
 import { generateId } from '@/utils/comfort';
 import { mockBenches } from '@/data/mockBenches';
+import { loadSeatReviews, mergeSeatReviews, writeSeatReview } from '@/utils/seatReviewStorage';
+
+type SeatReviewMap = ReturnType<typeof loadSeatReviews>;
 
 interface BenchState {
   benches: Bench[];
+  seatReviews: SeatReviewMap;
   searchQuery: string;
   materialFilter: MaterialType | null;
   orientationFilter: OrientationType | null;
@@ -26,6 +30,8 @@ interface BenchActions {
   updateBench: (id: string, updates: Partial<Bench>) => void;
   deleteBench: (id: string) => void;
   getBenchById: (id: string) => Bench | undefined;
+  /** 雨后适坐复核：只更新当前长椅的坐面状况与确认时间 */
+  confirmSeatReview: (benchId: string, seatCondition: SeatConditionType) => void;
   addExperience: (benchId: string, experience: Omit<BenchExperience, 'id' | 'benchId'>) => void;
   updateExperience: (benchId: string, expId: string, updates: Partial<BenchExperience>) => void;
   deleteExperience: (benchId: string, expId: string) => void;
@@ -34,6 +40,7 @@ interface BenchActions {
 
 const initialState: BenchState = {
   benches: [],
+  seatReviews: {},
   searchQuery: '',
   materialFilter: null,
   orientationFilter: null,
@@ -46,12 +53,14 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
   ...initialState,
 
   initialize: () => {
+    const seatReviews = loadSeatReviews();
     const stored = loadBenches();
     if (stored.length > 0) {
-      set({ benches: stored, initialized: true });
+      set({ benches: mergeSeatReviews(stored, seatReviews), seatReviews, initialized: true });
     } else {
-      set({ benches: mockBenches, initialized: true });
-      saveBenches(mockBenches);
+      const withReviews = mergeSeatReviews(mockBenches, seatReviews);
+      set({ benches: withReviews, seatReviews, initialized: true });
+      saveBenches(withReviews);
     }
   },
 
@@ -75,6 +84,7 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
       ...benchData,
       id: generateId(),
       experiences: [],
+      materialShadeAdjustedAt: now,
       createdAt: now,
       updatedAt: now,
     };
@@ -84,11 +94,22 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
   },
 
   updateBench: (id, updates) => {
-    const newBenches = get().benches.map((bench) =>
-      bench.id === id
-        ? { ...bench, ...updates, updatedAt: new Date().toISOString() }
-        : bench
-    );
+    const now = new Date().toISOString();
+    const newBenches = get().benches.map((bench) => {
+      if (bench.id !== id) return bench;
+      // 材质或遮阴调整时，记录调整时间，既有雨后确认随之失效
+      const materialShadeChanged =
+        (updates.material !== undefined && updates.material !== bench.material) ||
+        (updates.shadeLevel !== undefined && updates.shadeLevel !== bench.shadeLevel);
+      return {
+        ...bench,
+        ...updates,
+        materialShadeAdjustedAt: materialShadeChanged
+          ? now
+          : (bench.materialShadeAdjustedAt ?? bench.updatedAt),
+        updatedAt: now,
+      };
+    });
     set({ benches: newBenches });
     saveBenches(newBenches);
   },
@@ -101,6 +122,15 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
 
   getBenchById: (id) => {
     return get().benches.find((bench) => bench.id === id);
+  },
+
+  confirmSeatReview: (benchId, seatCondition) => {
+    const review = { seatCondition, confirmedAt: new Date().toISOString() };
+    const seatReviews = writeSeatReview(get().seatReviews, benchId, review);
+    const newBenches = get().benches.map((bench) =>
+      bench.id === benchId ? { ...bench, seatReview: review } : bench
+    );
+    set({ benches: newBenches, seatReviews });
   },
 
   addExperience: (benchId, experienceData) => {

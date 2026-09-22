@@ -3,6 +3,7 @@ import { MapPin, Clock, Volume2, Sun, Armchair } from 'lucide-react';
 import type { Bench } from '@/types';
 import { MATERIAL_LABELS, SHADE_LABELS, NOISE_LABELS, STAY_DURATION_LABELS } from '@/types';
 import Rating from '@/components/Rating/Rating';
+import { SeatReviewBadge } from '@/components/SeatReview/SeatReview';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
 
 interface BenchCardProps {
@@ -38,6 +39,8 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
         <div className="absolute top-3 left-3 px-2 py-1 bg-white/80 backdrop-blur-sm rounded-full text-xs text-ink-light">
           {MATERIAL_LABELS[bench.material]}
         </div>
+
+        <SeatReviewBadge bench={bench} />
       </div>
 
       <div className="p-4">
