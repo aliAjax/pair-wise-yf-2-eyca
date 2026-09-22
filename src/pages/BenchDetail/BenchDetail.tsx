@@ -26,6 +26,7 @@ import {
 } from '@/types';
 import type { TimePeriodType } from '@/types';
 import Rating from '@/components/Rating/Rating';
+import SeatCheckPanel from '@/components/SeatCheckPanel/SeatCheckPanel';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
 
 export default function BenchDetail() {
@@ -259,7 +260,9 @@ export default function BenchDetail() {
             )}
           </div>
 
-          <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-3">
+          <SeatCheckPanel bench={bench} />
+
+          <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-4">
             <h3 className="font-serif text-sm font-semibold text-deep-brown mb-3">
               档案信息
             </h3>

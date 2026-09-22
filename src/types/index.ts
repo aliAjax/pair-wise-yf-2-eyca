@@ -1,4 +1,6 @@
 export type MaterialType = 'wood' | 'metal' | 'stone' | 'plastic' | 'mixed';
+/** 雨后坐面状态：干燥 / 潮湿 / 积水 */
+export type SeatSurfaceType = 'dry' | 'wet' | 'pooled';
 export type OrientationType = 'east' | 'south' | 'west' | 'north' | 'southeast' | 'northeast' | 'southwest' | 'northwest';
 export type ShadeLevelType = 'none' | 'partial' | 'full';
 export type NoiseLevelType = 'quiet' | 'moderate' | 'noisy';
@@ -28,6 +30,8 @@ export interface Bench {
   rating: number;
   review: string;
   experiences: BenchExperience[];
+  /** 最近一次材质或遮阴调整时间；早于此时间的雨后复核视为待复核 */
+  materialShadeUpdatedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +42,12 @@ export const MATERIAL_LABELS: Record<MaterialType, string> = {
   stone: '石质',
   plastic: '塑料',
   mixed: '混合材质',
+};
+
+export const SEAT_SURFACE_LABELS: Record<SeatSurfaceType, string> = {
+  dry: '干燥',
+  wet: '潮湿',
+  pooled: '积水',
 };
 
 export const ORIENTATION_LABELS: Record<OrientationType, string> = {

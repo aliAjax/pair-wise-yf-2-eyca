@@ -3,12 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Trophy, MapPin, Star, Crown, Medal, Award } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import { getSeatCheckResult } from '@/utils/seatCheck';
+import { useSeatCheckRecords, useNow } from '@/components/SeatCheckPanel/SeatCheckPanel';
 import { MATERIAL_LABELS, SHADE_LABELS } from '@/types';
 import type { Bench } from '@/types';
 
 export default function RankingPage() {
   const { benches, initialize, initialized } = useBenchStore();
   const navigate = useNavigate();
+  const seatCheckRecords = useSeatCheckRecords();
+  const now = useNow();
 
   useEffect(() => {
     if (!initialized) {
@@ -16,7 +20,13 @@ export default function RankingPage() {
     }
   }, [initialized, initialize]);
 
-  const rankedBenches = [...benches]
+  // 雨后待复核（确认超时 / 坐面非干燥 / 早于材质或遮阴调整 / 未确认）的长椅从排行移除
+  const eligibleBenches = benches.filter((bench) => {
+    const record = seatCheckRecords.find((item) => item.benchId === bench.id);
+    return getSeatCheckResult(bench, record, now).status === 'eligible';
+  });
+
+  const rankedBenches = [...eligibleBenches]
     .sort((a, b) => calculateComfortScore(b) - calculateComfortScore(a))
     .map((bench, index) => ({ bench, rank: index + 1 }));
 
@@ -126,10 +136,10 @@ export default function RankingPage() {
             <Trophy className="w-8 h-8 text-moss-green/50" />
           </div>
           <h3 className="font-serif text-lg font-medium text-deep-brown mb-2">
-            还没有排行数据
+            暂无可排行的长椅
           </h3>
           <p className="text-ink-light text-sm">
-            添加一些长椅档案后，这里会显示舒适度排行榜
+            雨后待复核的长椅已从排行移除，请到详情页确认坐面干燥后查看排行
           </p>
         </div>
       )}

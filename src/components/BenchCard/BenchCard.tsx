@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Volume2, Sun, Armchair } from 'lucide-react';
+import { MapPin, Clock, Volume2, Sun, Armchair, CloudRain } from 'lucide-react';
 import type { Bench } from '@/types';
 import { MATERIAL_LABELS, SHADE_LABELS, NOISE_LABELS, STAY_DURATION_LABELS } from '@/types';
 import Rating from '@/components/Rating/Rating';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import { getSeatCheckResult } from '@/utils/seatCheck';
+import { useSeatCheckForBench, useNow } from '@/components/SeatCheckPanel/SeatCheckPanel';
 
 interface BenchCardProps {
   bench: Bench;
@@ -12,6 +14,9 @@ interface BenchCardProps {
 
 export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
   const navigate = useNavigate();
+  const seatCheck = useSeatCheckForBench(bench.id);
+  const now = useNow();
+  const seatResult = getSeatCheckResult(bench, seatCheck, now);
   const comfortScore = calculateComfortScore(bench);
   const comfortLevel = getComfortLevel(comfortScore);
   const comfortColor = getComfortColor(comfortScore);
@@ -35,8 +40,16 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
           <span className="text-ink-light ml-1">{comfortScore}</span>
         </div>
 
-        <div className="absolute top-3 left-3 px-2 py-1 bg-white/80 backdrop-blur-sm rounded-full text-xs text-ink-light">
-          {MATERIAL_LABELS[bench.material]}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5">
+          <span className="px-2 py-1 bg-white/80 backdrop-blur-sm rounded-full text-xs text-ink-light">
+            {MATERIAL_LABELS[bench.material]}
+          </span>
+          {seatResult.status === 'pending' && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-ochre/90 backdrop-blur-sm rounded-full text-xs text-white font-medium">
+              <CloudRain className="w-3 h-3" />
+              待复核
+            </span>
+          )}
         </div>
       </div>
 

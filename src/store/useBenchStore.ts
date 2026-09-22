@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Bench, BenchExperience, MaterialType, OrientationType, ShadeLevelType, NoiseLevelType, StayDurationType } from '@/types';
 import { loadBenches, saveBenches } from '@/utils/storage';
+import { removeSeatCheck } from '@/utils/seatCheckStorage';
 import { generateId } from '@/utils/comfort';
 import { mockBenches } from '@/data/mockBenches';
 
@@ -75,6 +76,7 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
       ...benchData,
       id: generateId(),
       experiences: [],
+      materialShadeUpdatedAt: now,
       createdAt: now,
       updatedAt: now,
     };
@@ -84,11 +86,22 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
   },
 
   updateBench: (id, updates) => {
-    const newBenches = get().benches.map((bench) =>
-      bench.id === id
-        ? { ...bench, ...updates, updatedAt: new Date().toISOString() }
-        : bench
-    );
+    const newBenches = get().benches.map((bench) => {
+      if (bench.id !== id) return bench;
+      // 材质或遮阴发生调整时，刷新调整时间；旧档案补登一次
+      const materialShadeChanged =
+        (updates.material !== undefined && updates.material !== bench.material) ||
+        (updates.shadeLevel !== undefined && updates.shadeLevel !== bench.shadeLevel);
+      return {
+        ...bench,
+        ...updates,
+        materialShadeUpdatedAt:
+          materialShadeChanged || !bench.materialShadeUpdatedAt
+            ? new Date().toISOString()
+            : bench.materialShadeUpdatedAt,
+        updatedAt: new Date().toISOString(),
+      };
+    });
     set({ benches: newBenches });
     saveBenches(newBenches);
   },
@@ -97,6 +110,7 @@ export const useBenchStore = create<BenchState & BenchActions>((set, get) => ({
     const newBenches = get().benches.filter((bench) => bench.id !== id);
     set({ benches: newBenches });
     saveBenches(newBenches);
+    removeSeatCheck(id);
   },
 
   getBenchById: (id) => {
